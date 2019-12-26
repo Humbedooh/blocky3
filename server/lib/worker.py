@@ -81,7 +81,7 @@ async def all(client):
         for hid in XB:
             await client.send("BAD %s" % hid)
         for hid in XG:
-            await client.send("BAD %s" % hid)
+            await client.send("GOOD %s" % hid)
         await client.send("COMMIT")
     except:
         pass # Ignore conn errors
