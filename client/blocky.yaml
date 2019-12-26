@@ -1,0 +1,7 @@
+server:
+    hostname:       wss://blocky-master.apache.org:3456/
+
+client:
+    
+deferrals:
+    default:        95.217.4.16

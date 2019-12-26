@@ -1,0 +1,4 @@
+security:
+    chain: /etc/letsencrypt/live/blocky-master.apache.org/fullchain.pem
+    chain: /etc/letsencrypt/live/blocky-master.apache.org/privkey.pem
+
