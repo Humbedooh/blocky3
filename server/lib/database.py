@@ -62,6 +62,41 @@ class BlockyESWrapper(object):
             body = body
             )
 
+class BlockyESWrapperSeven(object):
+    """
+       Class for rewriting old-style queries to the new ones,
+       where doc_type is an integral part of the DB name
+    """
+    def __init__(self, ES):
+        self.ES = ES
+
+    def get(self, index, doc_type, id):
+        return self.ES.get(index = index+'_'+doc_type, id = id)
+    def exists(self, index, doc_type, id):
+        return self.ES.exists(index = index+'_'+doc_type, id = id)
+    def exists_doctype(self, index, doc_type):
+        return self.ES.indices.exists(index = index+'_'+doc_type)
+    def create(self, index, doc_type):
+        return self.ES.indices.create(index = index+'_'+doc_type)
+    def delete(self, index, doc_type, id):
+        return self.ES.delete(index = index+'_'+doc_type, id = id)
+    def index(self, index, doc_type, id, body, refresh = False):
+        return self.ES.index(index = index+'_'+doc_type, id = id, refresh = refresh, body = body)
+    def update(self, index, doc_type, id, body):
+        return self.ES.update(index = index+'_'+doc_type, id = id, body = body)
+    def search(self, index, doc_type, size = 100, _source_include = None, body = None):
+        return self.ES.search(
+            index = index+'_'+doc_type,
+            size = size,
+            _source_include = _source_include,
+            body = body
+            )
+    def count(self, index, doc_type, body = None):
+        return self.ES.count(
+            index = index+'_'+doc_type,
+            body = body
+            )
+
 
 class BlockyDatabase(object):
     def __init__(self, config):
@@ -83,5 +118,8 @@ class BlockyDatabase(object):
         # If so, we're using the new ES DB mappings, and need to adjust ALL
         # ES calls to match this.
         es6 = True if int(self.ES.info()['version']['number'].split('.')[0]) >= 6 else False
-        if es6:
+        es7 = True if int(self.ES.info()['version']['number'].split('.')[0]) >= 7 else False
+        if es7:
+          self.ES = BlockyESWrapperSeven(self.ES)  
+        elif es6:
             self.ES = BlockyESWrapper(self.ES)
