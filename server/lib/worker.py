@@ -72,7 +72,7 @@ async def all(client):
     """ Print all goods/bad IPs to client """
     # Lock and copy
     LOCK.acquire(blocking = True)
-    XB =BADS_HASHED.copy()
+    XB = BADS_HASHED.copy()
     XG = GOODS_HASHED.copy()
     LOCK.release()
     
@@ -83,9 +83,8 @@ async def all(client):
         for hid in XG:
             await client.send("GOOD %s" % hid)
         await client.send("COMMIT")
-    except:
-        pass # Ignore conn errors
-    
+    except Exception as e:
+        print("Worker exception: %s" % e)
     
 def changes():
     global BADS_HASHED, GOODS_HASHED
