@@ -65,7 +65,7 @@ def serve(config, ssl_context, worker):
     if 'server' in config:
         bind = config['server'].get('bind', '::')
         port = config['server'].get('port', 3456)
-    start_server = websockets.serve(init_client, bind, port, ssl = ssl_context)
+    start_server = websockets.serve(init_client, bind, port, ping_interval = 60, ping_timeout = 180, ssl = ssl_context)
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
     
