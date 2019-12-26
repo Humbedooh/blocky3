@@ -1,7 +1,14 @@
 server:
-    hostname:       wss://blocky-master.apache.org:3456/
+    wshost:         wss://blocky-master.apache.org:3456/
+    apiurl:         https://blocky.apache.org/blocky-public
 
 client:
-    
-deferrals:
-    default:        95.217.4.16
+    uploadinterval: 180
+
+iptables:
+    chains:
+        - INPUT
+        - fail2ban-default
+        - fail2ban-aardvark
+        - fail2ban-ssh
+        - fail2ban-httpd-svn
