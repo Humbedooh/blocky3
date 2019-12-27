@@ -53,7 +53,7 @@ def upload_iptables():
     global BANLIST
     # First, get our rules and post 'em to the server
     ychains = CONFIG.get('iptables', {}).get('chains')
-    chains = ychains if ychains else ['INPUT']
+    chains = ychains or ['INPUT']
     LOCK.acquire(blocking = True)
     BANLIST = []
     for chain in chains:
@@ -92,7 +92,7 @@ async def process_changes(whitelist, banlist, websocket):
     whiteblocks = []
     if not (whitelist or banlist):
         return
-    syslog.syslog(syslog.LOG_INFO, "Processing %u banlist changes..." % (len(whitelist) + len(banlist)))
+    syslog.syslog(syslog.LOG_INFO, "Processing Blocky change-set (%u entries)" % (len(whitelist) + len(banlist)))
     processed = 0
     for ip in whitelist:
          if ip:
@@ -106,7 +106,7 @@ async def process_changes(whitelist, banlist, websocket):
                   block = netaddr.IPNetwork("%s/32" % ip)  # IPv4
             whiteblocks.append(block)
             found = inlist(XBANLIST, ip)
-            if found:
+            while found:
                entry = found[0]
                syslog.syslog(syslog.LOG_INFO, "Removing %s from block list (found at line %s as %s)" % (ip, entry['linenumber'], entry['source']))
                if not unban_line(ip, entry['linenumber'], chain = entry.get('chain', 'INPUT')):
@@ -118,6 +118,7 @@ async def process_changes(whitelist, banlist, websocket):
                 for chain in chains:
                   XBANLIST += getbans(chain)
                 LOCK.release()
+                found = inlist(XBANLIST, ip)
     
     # Then process bans
     for ip in banlist:
@@ -129,6 +130,10 @@ async def process_changes(whitelist, banlist, websocket):
             block = None
             if '/' in ip:
                block = netaddr.IPNetwork(ip)
+               # We never ban larger than a /8 on ipv4 and /56 on ipv6
+               if (block.version == 4 and block.size > (2**24)) or (block.version == 6 and block.size > (2^72)):
+                  syslog.syslog(syslog.LOG_WARNING, "%s was requested banned but the net block is too large (%u IPs)" % (block, block.size))
+                  continue
             else:
                if ':' in ip:
                   block = netaddr.IPNetwork("%s/128" % ip) # IPv6
@@ -317,8 +322,8 @@ def inlist(banlist, ip, canContain = True):
    return lines
 
 
-async def hello(config):
-    uri = config['server']['wshost']
+async def hello(epoch):
+    uri = CONFIG['server']['wshost']
     while True:
         async with websockets.connect(uri) as websocket:
             greeting = await websocket.recv()
@@ -327,7 +332,7 @@ async def hello(config):
             banlist = []
             whitelist = []
     
-            await websocket.send('ALL')
+            await websocket.send('ALL %s' % epoch)
             while True:
                 try:
                     response = await websocket.recv()
@@ -339,6 +344,7 @@ async def hello(config):
                         await websocket.send("OKAY")
                         try:
                             await process_changes(whitelist, banlist, websocket)
+                            epoch = int(time.time())
                         except Exception as e:
                             syslog.syslog("[%s] Could not process blocky changelist: %s" % (time.time(), e))
                         whitelist = []
@@ -364,7 +370,17 @@ def main():
     # Figure out who we are
     me = socket.getfqdn()
     
-   
+    # Try opening the epoch file
+    epoch = 0
+    try:
+        epoch = int(open("epoch.dat").read())
+    except:
+        pass
+    # Set new epoch
+    with open("epoch.dat", "w") as f:
+        f.write("%u" % time.time())
+        f.close()
+    
     # Load YAML
     CONFIG = yaml.load(open('./blocky.yaml').read())
     if 'client' not in CONFIG:
@@ -376,7 +392,7 @@ def main():
     upload_iptables()
      
     # Start async loop
-    asyncio.get_event_loop().run_until_complete(hello(CONFIG))
+    asyncio.get_event_loop().run_until_complete(hello(epoch))
     print("EXITING")
 
 if len(sys.argv) == 2 and sys.argv[1] == 'test':
