@@ -68,7 +68,7 @@ def report():
     t = threading.Timer(15, report)
     t.start()
 
-async def all(client):
+async def all(client, epoch = 0):
     """ Print all goods/bad IPs to client """
     # Lock and copy
     LOCK.acquire(blocking = True)
@@ -79,6 +79,9 @@ async def all(client):
     # Send 'em all
     try:
         for hid in XB:
+            block = ALL_BLOCKS[hid]
+            if block['epoch'] < epoch:
+                continue
             await client.send("BAD %s" % hid)
         for hid in XG:
             await client.send("GOOD %s" % hid)
