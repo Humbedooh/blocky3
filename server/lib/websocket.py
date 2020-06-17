@@ -57,6 +57,8 @@ async def init_client(socket, path):
             if message.startswith('ALL '): # Get all blocks since...
                 cmd, epoch = message.split(' ', 1)
                 await LW.all(socket, int(epoch))
+        except:
+            pass
     finally:
         await remove_client(socket)
 
